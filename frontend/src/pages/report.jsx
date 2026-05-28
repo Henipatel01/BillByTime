@@ -17,7 +17,7 @@ import {
   Legend,
 } from "recharts";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers 
 const formatTime = (seconds) => {
   if (!seconds) return "0s";
   const h = Math.floor(seconds / 3600);
@@ -54,7 +54,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ─── Component ────────────────────────────────────────────────────────────────
+//Component 
 export default function Reports() {
   const [daily, setDaily] = useState(null);
   const [invoices, setInvoices] = useState([]);
