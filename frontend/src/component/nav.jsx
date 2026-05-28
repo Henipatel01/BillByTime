@@ -1,4 +1,3 @@
-// import logo1 from "../img/logo1.png"
 import "../App.css"
 import { NavLink } from "react-router-dom";
 import { useState } from "react";

@@ -2,7 +2,7 @@
 // Usage:
 //   import { SignupSuccessPopup, LoginSuccessPopup } from "../component/SuccessPopup";
 
-// ─── Shared base popup ────────────────────────────────────────────────────────
+// -------------Shared base popup----------------------------------------------------------
 function SuccessPopup({ icon, badge, badgeColor, title, subtitle, steps, onContinue, onClose }) {
   return (
     <div
