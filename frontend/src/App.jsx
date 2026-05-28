@@ -30,7 +30,7 @@ export default function App() {
           },
           success: {
             iconTheme: {
-              primary: "#1a4a3a",   // your green
+              primary: "#1a4a3a", 
               secondary: "#ffffff",
             },
           },
@@ -45,7 +45,6 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Home />} />
-        {/* <Route path="/" element={<Nav />} /> */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={
@@ -80,19 +79,6 @@ export default function App() {
           </ProtectedRoute>}
            />
       </Routes>
-
-
-      {/* <Dashboard/> */}
-
-
-
-
-
-
-      {/* <Signup/> */}
-      {/* <Login /> */}
-      {/* <Landing/> */}
-
     </>
   )
 }

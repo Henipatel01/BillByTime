@@ -82,7 +82,7 @@ export const logIn = async (req: Request<{}, {}, LoginBody>, res: Response, next
         });
 
     } catch (error) {
-        console.log("ERROR 👉", error);
+        console.log("ERROR", error);
         // res.status(200).json({ message: "Internal server error" })
         return next(new AppError("Internal Server Error", 500));
     }
