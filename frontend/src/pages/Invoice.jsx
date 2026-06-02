@@ -20,7 +20,6 @@ function generateInvoicePDF(inv, formatTime) {
   const invoiceNo = inv._id
     ? `INV-${inv._id.toString().slice(-6).toUpperCase()}`
     : `INV-${Date.now().toString().slice(-6)}`;
-
   const startTime = inv.startTime
     ? new Date(inv.startTime).toLocaleString("en-IN", {
         dateStyle: "medium",
@@ -89,11 +88,7 @@ function generateInvoicePDF(inv, formatTime) {
         <tbody>
           <tr>
             <td>
-              ${
-                inv.notes && inv.notes.trim()
-                  ? `<div class="desc">${inv.notes}</div>`
-                  : `<div class="desc">Service rendered</div>`
-              }
+              ${inv.notes?.trim() ? `<div class="desc">${inv.notes}</div>` : `<div class="desc">Service rendered</div>`}
               ${startTime ? `<div class="sub">Start: ${startTime}</div>` : ""}
               ${endTime ? `<div class="sub">End: ${endTime}</div>` : ""}
             </td>
@@ -139,6 +134,7 @@ export default function Invoice() {
   const [manualForm, setManualForm] = useState(defaultManual);
   const [manualErrors, setManualErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
@@ -233,15 +229,61 @@ export default function Invoice() {
   });
 
   return (
-    // <div className="min-h-screen bg-[#F5F5F0] text-gray-800 flex font-sans">
-
     <div className="h-screen bg-[#F5F5F0] text-gray-800 flex font-sans overflow-hidden">
-      <Sidebar />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 p-8 overflow-y-auto">
-          {/* ── HEADER ── */}
-          <div className="flex justify-between items-center mb-8">
+      {/* Sidebar — desktop sticky, mobile drawer */}
+      <div className="hidden lg:flex h-screen sticky top-0 shrink-0">
+        <Sidebar />
+      </div>
+      <div
+        className={`fixed inset-y-0 left-0 z-30 lg:hidden transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Main — only this scrolls */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        {/* Mobile top bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 lg:hidden sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition"
+            >
+              <svg
+                className="w-5 h-5 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+            <span className="font-bold text-gray-900 text-base">Invoices</span>
+          </div>
+          <button
+            onClick={() => setShowManual(true)}
+            className="bg-[#1a4a3a] hover:bg-[#163d30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition"
+          >
+            + New
+          </button>
+        </div>
+
+        <div className="p-4 sm:p-6 lg:p-8">
+          {/* ── HEADER (desktop) ── */}
+          <div className="hidden lg:flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold text-gray-950 tracking-tight">
                 Invoices
@@ -256,7 +298,7 @@ export default function Invoice() {
               </span>
               <button
                 onClick={() => setShowManual(true)}
-                className="flex items-center gap-2 bg-[#1a4a3a] hover:bg-[#163d30] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all duration-200 hover:shadow-lg"
+                className="flex items-center gap-2 bg-[#1a4a3a] hover:bg-[#163d30] text-white px-4 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all"
               >
                 <svg
                   className="w-4 h-4"
@@ -274,6 +316,16 @@ export default function Invoice() {
                 New Invoice
               </button>
             </div>
+          </div>
+
+          {/* Mobile count badge */}
+          <div className="flex items-center justify-between mb-4 lg:hidden">
+            <p className="text-sm text-gray-500 font-medium">
+              All billing records
+            </p>
+            <span className="text-xs font-bold text-gray-500 bg-white border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">
+              {invoices.length} TOTAL
+            </span>
           </div>
 
           {/* ── SEARCH ── */}
@@ -320,10 +372,10 @@ export default function Invoice() {
             )}
           </div>
 
-          {/* ── TABLE ── */}
+          {/* ── TABLE / CARDS ── */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            {/* Table header — 6 cols */}
-            <div className="grid grid-cols-6 px-5 py-3.5 text-xs font-bold text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-100">
+            {/* Desktop column headers */}
+            <div className="hidden md:grid md:grid-cols-6 px-5 py-3.5 text-xs font-bold text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-100">
               <p className="col-span-2">Client</p>
               <p>Duration</p>
               <p>Type</p>
@@ -332,7 +384,7 @@ export default function Invoice() {
             </div>
 
             {filteredInvoices.length === 0 ? (
-              <div className="text-center py-16 text-gray-400">
+              <div className="text-center py-16 text-gray-400 px-4">
                 <svg
                   className="w-12 h-12 mx-auto mb-3 text-gray-200"
                   fill="none"
@@ -354,49 +406,133 @@ export default function Invoice() {
               </div>
             ) : (
               filteredInvoices.map((inv) => (
-                <div
-                  key={inv._id}
-                  className="grid grid-cols-6 px-5 py-3.5 border-t border-gray-100 items-center hover:bg-gray-50/70 transition-colors duration-150"
-                >
-                  {/* Client */}
-                  <div className="col-span-2 min-w-0 pr-4">
-                    <p className="font-bold text-gray-900 text-sm truncate">
-                      {inv.name}
+                <div key={inv._id}>
+                  {/* ── Desktop row ── */}
+                  <div className="hidden md:grid md:grid-cols-6 px-5 py-3.5 border-t border-gray-100 items-center hover:bg-gray-50/70 transition-colors duration-150">
+                    <div className="col-span-2 min-w-0 pr-4">
+                      <p className="font-bold text-gray-900 text-sm truncate">
+                        {inv.name}
+                      </p>
+                      <p className="text-xs text-gray-500 font-medium truncate">
+                        {inv.email}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-800 font-semibold">
+                      {formatTime(inv.duration)}
                     </p>
-                    <p className="text-xs text-gray-500 font-medium truncate">
-                      {inv.email}
+                    <p>
+                      <span className="capitalize bg-gray-200 text-gray-800 px-2 py-0.5 rounded-md text-xs font-bold">
+                        {inv.pricingType || "manual"}
+                      </span>
                     </p>
+                    <p className="text-sm font-bold text-emerald-700 font-mono">
+                      ₹{Number(inv.amount).toFixed(2)}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                          {new Date(inv.createdAt).toLocaleDateString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                        {inv.startTime && (
+                          <p className="text-xs text-gray-400 whitespace-nowrap">
+                            {new Date(inv.startTime).toLocaleTimeString(
+                              "en-IN",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
+                            {inv.endTime && (
+                              <>
+                                {" "}
+                                →{" "}
+                                {new Date(inv.endTime).toLocaleTimeString(
+                                  "en-IN",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )}
+                              </>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => generateInvoicePDF(inv, formatTime)}
+                        title="Download PDF"
+                        className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 transition shrink-0"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(inv)}
+                        title="Delete Invoice"
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 transition shrink-0"
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Duration */}
-                  <p className="text-sm text-gray-800 font-semibold">
-                    {formatTime(inv.duration)}
-                  </p>
+                  {/* ── Mobile card ── */}
+                  <div className="md:hidden border-t border-gray-100 px-4 py-4 hover:bg-gray-50/60 transition-colors">
+                    {/* Row 1: name + amount */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="min-w-0">
+                        <p className="font-bold text-gray-900 text-sm truncate">
+                          {inv.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {inv.email}
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-emerald-700 font-mono shrink-0">
+                        ₹{Number(inv.amount).toFixed(2)}
+                      </p>
+                    </div>
 
-                  {/* Type badge */}
-                  <p>
-                    <span className="capitalize bg-gray-200 text-gray-800 px-2 py-0.5 rounded-md text-xs font-bold">
-                      {inv.pricingType || "manual"}
-                    </span>
-                  </p>
-
-                  {/* Amount */}
-                  <p className="text-sm font-bold text-emerald-700 font-mono">
-                    ₹{Number(inv.amount).toFixed(2)}
-                  </p>
-
-                  {/* Date + Actions */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 font-medium whitespace-nowrap">
+                    {/* Row 2: meta tags */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <span className="capitalize bg-gray-200 text-gray-800 px-2 py-0.5 rounded-md text-xs font-bold">
+                        {inv.pricingType || "manual"}
+                      </span>
+                      {inv.duration ? (
+                        <span className="text-xs text-gray-500 font-semibold">
+                          {formatTime(inv.duration)}
+                        </span>
+                      ) : null}
+                      <span className="text-xs text-gray-400">
                         {new Date(inv.createdAt).toLocaleDateString("en-IN", {
                           day: "2-digit",
                           month: "short",
                           year: "numeric",
                         })}
-                      </p>
+                      </span>
                       {inv.startTime && (
-                        <p className="text-xs text-gray-400 whitespace-nowrap">
+                        <span className="text-xs text-gray-400">
                           {new Date(inv.startTime).toLocaleTimeString("en-IN", {
                             hour: "2-digit",
                             minute: "2-digit",
@@ -411,49 +547,51 @@ export default function Invoice() {
                               )}
                             </>
                           )}
-                        </p>
+                        </span>
                       )}
                     </div>
-                    {/* Download PDF */}
-                    <button
-                      onClick={() => generateInvoicePDF(inv, formatTime)}
-                      title="Download PDF"
-                      className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 transition shrink-0"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+
+                    {/* Row 3: actions */}
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        onClick={() => generateInvoicePDF(inv, formatTime)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-xs font-semibold transition"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                        />
-                      </svg>
-                    </button>
-                    {/* Delete */}
-                    <button
-                      onClick={() => handleDelete(inv)}
-                      title="Delete Invoice"
-                      className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 transition shrink-0"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        PDF
+                      </button>
+                      <button
+                        onClick={() => handleDelete(inv)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 text-xs font-semibold transition"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
+                        <svg
+                          className="w-3.5 h-3.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -466,45 +604,24 @@ export default function Invoice() {
             </p>
           )}
         </div>
+      </div>
 
-        {/* ── MANUAL INVOICE MODAL ─────────────────────────────────────────────── */}
-        {showManual && (
+      {/* ── MANUAL INVOICE MODAL ── */}
+      {showManual && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center backdrop-blur-sm z-50 p-0 sm:p-4"
+          onClick={closeModal}
+        >
           <div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm z-50"
-            onClick={closeModal}
+            className="bg-white w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-2xl w-[420px] shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal header */}
-              <div className="bg-[#1a4a3a] px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
-                    <svg
-                      className="w-3.5 h-3.5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                  </div>
-                  <h2 className="text-base font-semibold text-white">
-                    New Manual Invoice
-                  </h2>
-                </div>
-                <button
-                  onClick={closeModal}
-                  className="text-white/60 hover:text-white transition"
-                >
+            {/* Modal header */}
+            <div className="bg-[#1a4a3a] px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
                   <svg
-                    className="w-5 h-5"
+                    className="w-3.5 h-3.5 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -512,137 +629,158 @@ export default function Invoice() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
+                      strokeWidth={2.5}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                     />
                   </svg>
-                </button>
+                </div>
+                <h2 className="text-base font-semibold text-white">
+                  New Manual Invoice
+                </h2>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-white/60 hover:text-white transition"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+              {/* Client Info */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  Client Info
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <input
+                      placeholder="Full name *"
+                      value={manualForm.name}
+                      onChange={(e) => setField("name", e.target.value)}
+                      className={inputCls(manualErrors.name)}
+                    />
+                    {manualErrors.name && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {manualErrors.name}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      placeholder="Email address *"
+                      value={manualForm.email}
+                      onChange={(e) => setField("email", e.target.value)}
+                      className={inputCls(manualErrors.email)}
+                    />
+                    {manualErrors.email && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {manualErrors.email}
+                      </p>
+                    )}
+                  </div>
+                  <input
+                    placeholder="Phone (optional)"
+                    value={manualForm.phone}
+                    onChange={(e) => setField("phone", e.target.value)}
+                    className={inputCls(false)}
+                  />
+                </div>
               </div>
 
-              <div className="p-6 space-y-5">
-                {/* Client Info */}
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Client Info
-                  </p>
-                  <div className="space-y-3">
-                    <div>
-                      <input
-                        placeholder="Full name *"
-                        value={manualForm.name}
-                        onChange={(e) => setField("name", e.target.value)}
-                        className={inputCls(manualErrors.name)}
-                      />
-                      {manualErrors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {manualErrors.name}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <input
-                        placeholder="Email address *"
-                        value={manualForm.email}
-                        onChange={(e) => setField("email", e.target.value)}
-                        className={inputCls(manualErrors.email)}
-                      />
-                      {manualErrors.email && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {manualErrors.email}
-                        </p>
-                      )}
-                    </div>
-                    <input
-                      placeholder="Phone (optional)"
-                      value={manualForm.phone}
-                      onChange={(e) => setField("phone", e.target.value)}
-                      className={inputCls(false)}
-                    />
-                  </div>
-                </div>
-
-                {/* Billing Details */}
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Billing Details
-                  </p>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm">
-                          ₹
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="0.00"
-                          value={manualForm.amount}
-                          onChange={(e) => setField("amount", e.target.value)}
-                          className={`${inputCls(manualErrors.amount)} pl-7`}
-                        />
-                      </div>
-                      {manualErrors.amount && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {manualErrors.amount}
-                        </p>
-                      )}
-                    </div>
-                    <textarea
-                      placeholder="Notes / description (optional)"
-                      value={manualForm.notes}
-                      onChange={(e) => setField("notes", e.target.value)}
-                      rows={3}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none transition text-gray-900 font-medium focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 resize-none"
-                    />
-                  </div>
-                </div>
-
-                {/* Footer buttons */}
-                <div className="flex gap-3 pt-1">
-                  <button
-                    onClick={closeModal}
-                    className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={saveManualInvoice}
-                    disabled={saving}
-                    className="flex-1 py-2.5 bg-[#1a4a3a] hover:bg-[#163d30] text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md disabled:opacity-60"
-                  >
-                    {saving ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <svg
-                          className="w-4 h-4 animate-spin"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8z"
-                          />
-                        </svg>
-                        Saving...
+              {/* Billing Details */}
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  Billing Details
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 font-bold text-sm">
+                        ₹
                       </span>
-                    ) : (
-                      "Save Invoice"
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0.00"
+                        value={manualForm.amount}
+                        onChange={(e) => setField("amount", e.target.value)}
+                        className={`${inputCls(manualErrors.amount)} pl-7`}
+                      />
+                    </div>
+                    {manualErrors.amount && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {manualErrors.amount}
+                      </p>
                     )}
-                  </button>
+                  </div>
+                  <textarea
+                    placeholder="Notes / description (optional)"
+                    value={manualForm.notes}
+                    onChange={(e) => setField("notes", e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none transition text-gray-900 font-medium focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 resize-none"
+                  />
                 </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={closeModal}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold text-sm hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveManualInvoice}
+                  disabled={saving}
+                  className="flex-1 py-2.5 bg-[#1a4a3a] hover:bg-[#163d30] text-white rounded-xl font-semibold text-sm transition-all shadow-md disabled:opacity-60"
+                >
+                  {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        />
+                      </svg>
+                      Saving...
+                    </span>
+                  ) : (
+                    "Save Invoice"
+                  )}
+                </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

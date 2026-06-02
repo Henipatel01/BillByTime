@@ -33,7 +33,6 @@ const userSchema = new Schema<IUser>({
 })
 
 userSchema.pre('save', async function (this: IUser) {
-    // console.log('pre',this)
     const user = this
     if (!user.isModified('password')) {
         return;
@@ -45,7 +44,6 @@ userSchema.pre('save', async function (this: IUser) {
         user.password = hash_Password
 
     } catch (error) {
-        // return next(error)
         throw error;
     }
 })
@@ -77,10 +75,6 @@ userSchema.methods.generateToken = function (this: IUser): string {
 userSchema.methods.comparePassword = async function (this: IUser, password: string): Promise<boolean> {
     return bcrypt.compare(password, this.password);
 };
-// {
-//     return bcrypt.compare(password, this.password);
-// };
-
 
 const UserModel = mongoose.model('Users', userSchema)
 export default UserModel;

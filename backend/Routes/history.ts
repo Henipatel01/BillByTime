@@ -6,6 +6,6 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get("/client", getClientHistory); // GET /api/history/client?date=YYYY-MM-DD
+router.get("/client", getClientHistory);
 
 export default router;

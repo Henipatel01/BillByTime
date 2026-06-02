@@ -77,7 +77,6 @@ export const createCustomer = async (req: Request, res: Response) => {
   console.log("CREATE CUSTOMER HIT:", req.body);
   try {
     const userId = (req as any).user?.userId;
-    console.log("USER OBJECT:", (req as any).user);
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -184,7 +183,6 @@ if (pricing.type === "perunit") {
       phone,
       pricing,
     });
-console.log("SAVED CUSTOMER:", customer);
     return res.status(201).json({
       message: "Customer created",
       data: customer,
@@ -199,8 +197,6 @@ console.log("SAVED CUSTOMER:", customer);
 export const getCustomerList = async (req: Request, res: Response) => {
   try {
        const userId = (req as any).user?.userId;
-
-    console.log("USER OBJECT:", (req as any).user);
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });

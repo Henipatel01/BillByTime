@@ -22,12 +22,10 @@ import { ZodError } from "zod";
   return res.status(400).json({
     success: false,
     message: "Validation error",
-    errors,   // 👈 THIS is important
+    errors,
   });
 }
   };
 }
 
 export default validate
-
-// module.exports = validate;

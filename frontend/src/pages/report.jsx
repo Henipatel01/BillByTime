@@ -14,10 +14,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 
-// Helpers 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const formatTime = (seconds) => {
   if (!seconds) return "0s";
   const h = Math.floor(seconds / 3600);
@@ -36,7 +35,6 @@ const formatDate = (dateStr) =>
     month: "short",
   });
 
-// Custom tooltip for charts
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -54,12 +52,13 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-//Component 
+// ─── Component ────────────────────────────────────────────────────────────────
 export default function Reports() {
   const [daily, setDaily] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState(7); // days to show in chart
+  const [range, setRange] = useState(7);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -80,11 +79,8 @@ export default function Reports() {
     load();
   }, []);
 
-  // Build day-by-day chart data from all invoices
   const chartData = useMemo(() => {
     if (!invoices.length) return [];
-
-    // Group by date
     const map = {};
     invoices.forEach((inv) => {
       const day = new Date(inv.createdAt).toISOString().split("T")[0];
@@ -92,8 +88,6 @@ export default function Reports() {
       map[day].earnings += inv.amount || 0;
       if (inv.email) map[day].clients.add(inv.email);
     });
-
-    // Sort and take last N days
     return Object.values(map)
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(-range)
@@ -104,7 +98,6 @@ export default function Reports() {
       }));
   }, [invoices, range]);
 
-  // Breakdown by pricing type
   const typeBreakdown = useMemo(() => {
     const map = {};
     invoices.forEach((inv) => {
@@ -116,19 +109,57 @@ export default function Reports() {
     return Object.values(map).sort((a, b) => b.total - a.total);
   }, [invoices]);
 
-  // Today's invoices from daily report
   const todayInvoices = daily?.invoices || [];
 
   return (
-    // <div className="min-h-screen bg-[#F5F5F0] text-gray-800 flex font-sans">
     <div className="h-screen bg-[#F5F5F0] text-gray-800 flex font-sans overflow-hidden">
-      <Sidebar />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 p-8 overflow-y-auto">
+      {/* Sidebar — desktop sticky, mobile drawer */}
+      <div className="hidden lg:flex h-screen sticky top-0 shrink-0">
+        <Sidebar />
+      </div>
+      <div
+        className={`fixed inset-y-0 left-0 z-30 lg:hidden transform transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
+      >
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Main — only this scrolls */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        {/* Mobile top bar */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 lg:hidden sticky top-0 z-10 shadow-sm">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100 transition"
+          >
+            <svg
+              className="w-5 h-5 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+          <span className="font-bold text-gray-900 text-base">Reports</span>
+        </div>
+
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* ── HEADER ── */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 lg:mb-8">
+            <div className="hidden lg:block">
               <h1 className="text-2xl font-bold text-gray-950 tracking-tight">
                 Reports
               </h1>
@@ -141,35 +172,44 @@ export default function Reports() {
                 })}
               </p>
             </div>
+            {/* Mobile date */}
+            <p className="text-xs text-gray-400 font-medium lg:hidden">
+              {new Date().toLocaleDateString("en-IN", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+
             {/* Range selector */}
-            {/* <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl p-1 shadow-sm">
-            {[7, 14, 30].map((d) => (
-              <button
-                key={d}
-                onClick={() => setRange(d)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  range === d
-                    ? "bg-[#1a4a3a] text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                }`}
-              >
-                {d}d
-              </button>
-            ))}
-          </div> */}
+            <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-xl p-1 shadow-sm self-start sm:self-auto">
+              {[7, 14, 30].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setRange(d)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    range === d
+                      ? "bg-[#1a4a3a] text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
               <span className="ml-3 text-sm text-gray-500">
                 Loading report...
               </span>
             </div>
           ) : (
             <>
-              {/* ── TODAY'S SUMMARY CARDS ── */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+              {/* ── STAT CARDS ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 lg:mb-8">
                 <StatCard
                   title="TODAY'S EARNINGS"
                   value={`₹${(daily?.totalAmount || 0).toFixed(2)}`}
@@ -188,11 +228,11 @@ export default function Reports() {
                 />
               </div>
 
-              {/* ── CHARTS ROW ── */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+              {/* ── CHARTS ── */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6 lg:mb-8">
                 {/* Earnings chart */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-5">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-4 sm:mb-5">
                     <div>
                       <h2 className="text-sm font-bold text-gray-900">
                         Total Earnings
@@ -210,11 +250,11 @@ export default function Reports() {
                     </span>
                   </div>
                   {chartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-48 text-gray-300 text-sm">
+                    <div className="flex items-center justify-center h-40 text-gray-300 text-sm">
                       No data yet
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <AreaChart
                         data={chartData}
                         margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -242,12 +282,12 @@ export default function Reports() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis
                           dataKey="date"
-                          tick={{ fontSize: 11, fill: "#9ca3af" }}
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
                           axisLine={false}
                           tickLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: "#9ca3af" }}
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
                           axisLine={false}
                           tickLine={false}
                         />
@@ -267,8 +307,8 @@ export default function Reports() {
                 </div>
 
                 {/* Clients billed chart */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
-                  <div className="flex items-center justify-between mb-5">
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-4 sm:mb-5">
                     <div>
                       <h2 className="text-sm font-bold text-gray-900">
                         Clients Billed
@@ -286,11 +326,11 @@ export default function Reports() {
                     </span>
                   </div>
                   {chartData.length === 0 ? (
-                    <div className="flex items-center justify-center h-48 text-gray-300 text-sm">
+                    <div className="flex items-center justify-center h-40 text-gray-300 text-sm">
                       No data yet
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={200}>
+                    <ResponsiveContainer width="100%" height={180}>
                       <BarChart
                         data={chartData}
                         margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
@@ -298,12 +338,12 @@ export default function Reports() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis
                           dataKey="date"
-                          tick={{ fontSize: 11, fill: "#9ca3af" }}
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
                           axisLine={false}
                           tickLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 11, fill: "#9ca3af" }}
+                          tick={{ fontSize: 10, fill: "#9ca3af" }}
                           axisLine={false}
                           tickLine={false}
                           allowDecimals={false}
@@ -321,7 +361,7 @@ export default function Reports() {
                 </div>
               </div>
 
-              {/* ── BOTTOM ROW: Pricing breakdown + Today's invoices ── */}
+              {/* ── BOTTOM ROW ── */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Pricing type breakdown */}
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -397,7 +437,6 @@ export default function Reports() {
                       </span>
                     )}
                   </div>
-
                   {todayInvoices.length === 0 ? (
                     <div className="text-center py-10 text-gray-400">
                       <svg
@@ -457,16 +496,20 @@ export default function Reports() {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ title, value, sub, accent = false }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
+    <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow duration-200">
+      <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 sm:mb-3">
         {title}
       </p>
       <h2
-        className={`font-bold tracking-tight text-3xl ${accent ? "text-emerald-700 font-mono" : "text-gray-950"}`}
+        className={`font-bold tracking-tight text-2xl sm:text-3xl ${accent ? "text-emerald-700 font-mono" : "text-gray-950"}`}
       >
         {value}
       </h2>
-      {sub && <p className="text-xs mt-1.5 font-medium text-gray-400">{sub}</p>}
+      {sub && (
+        <p className="text-xs mt-1 sm:mt-1.5 font-medium text-gray-400">
+          {sub}
+        </p>
+      )}
     </div>
   );
 }

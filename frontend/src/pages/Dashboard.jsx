@@ -45,6 +45,7 @@ export default function Dashboard() {
     type: null,
     client: null,
   });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -105,7 +106,7 @@ export default function Dashboard() {
       });
       setDeleteModal({ open: false, client: null });
       toast.success(`${c.name} deleted successfully`);
-    } catch (err) {
+    } catch {
       setDeleteModal({ open: false, client: null });
       toast.error("Failed to delete client");
     }
@@ -151,8 +152,7 @@ export default function Dashboard() {
         ),
       );
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to start timer";
-      toast.error(msg);
+      toast.error(err.response?.data?.message || "Failed to start timer");
     }
   };
 
@@ -229,9 +229,9 @@ export default function Dashboard() {
         ),
       );
       toast.success("Stopped successfully");
-    } catch (err) {
+    } catch {
       toast.error("Stop failed");
-      throw err;
+      throw new Error("Stop failed");
     }
   };
 
@@ -314,7 +314,6 @@ export default function Dashboard() {
       if (err.response?.data?.message === "Customer already exists") {
         toast.error("Client already exists");
         closeForm();
-        return;
       }
     }
   };
@@ -352,31 +351,88 @@ export default function Dashboard() {
   };
 
   const inputCls = (key) =>
-    `w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition ${errors[key] ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"}`;
+    `w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition ${
+      errors[key]
+        ? "border-red-400 bg-red-50"
+        : "border-gray-200 bg-gray-50 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+    }`;
 
   return (
     <div className="h-screen bg-[#F5F5F0] text-gray-800 flex font-sans overflow-hidden">
-      <Sidebar />
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-          {/* ── HEADER ── */}
-          <div className="flex justify-between items-start md:items-center mb-6 md:mb-8 gap-3">
-            <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold text-gray-950 tracking-tight">
+      {/* Sidebar — mobile: fixed drawer, desktop: static */}
+      <div className="hidden lg:flex lg:h-screen lg:sticky lg:top-0 shrink-0">
+        <Sidebar />
+      </div>
+      {/* Mobile drawer */}
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-30 lg:hidden
+          transform transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
+        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Mobile top bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 lg:hidden sticky top-0 z-10 shadow-sm">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition"
+            >
+              <svg
+                className="w-5 h-5 text-gray-700"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+            </button>
+            <span className="font-bold text-gray-900 text-base">Dashboard</span>
+          </div>
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-[#1a4a3a] hover:bg-[#163d30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition"
+          >
+            + New Client
+          </button>
+        </div>
+
+        <div className="p-4 sm:p-6 lg:p-8">
+          {/* ── HEADER (desktop only) ── */}
+          <div className="hidden lg:flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-950 tracking-tight">
                 Dashboard
               </h1>
-              <p className="text-xs md:text-sm text-gray-600 mt-0.5 font-medium hidden sm:block">
+              <p className="text-sm text-gray-600 mt-0.5 font-medium">
                 Welcome back — here's your overview
               </p>
             </div>
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              <span className="hidden sm:block text-xs md:text-sm font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-bold text-gray-800 bg-white border border-gray-300 px-3 py-1.5 rounded-lg shadow-sm">
                 ADMIN
               </span>
               <button
                 onClick={() => setShowForm(true)}
-                className="bg-[#1a4a3a] hover:bg-[#163d30] text-white px-3 md:px-5 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-semibold shadow-md transition-all"
+                className="bg-[#1a4a3a] hover:bg-[#163d30] text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all"
               >
                 + New Client
               </button>
@@ -384,7 +440,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── STATS ── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-5 mb-6 md:mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-7">
             <StatCard
               title="TOTAL CLIENTS"
               value={uniqueClients.length}
@@ -410,7 +466,7 @@ export default function Dashboard() {
           </div>
 
           {loading && (
-            <div className="flex items-center justify-center py-6">
+            <div className="flex items-center justify-center py-5">
               <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
               <span className="ml-2 text-sm text-gray-500">Loading...</span>
             </div>
@@ -462,37 +518,44 @@ export default function Dashboard() {
 
           {/* ── TABS ── */}
           <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition ${activeTab === "all" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-            >
-              All ({filteredClients.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("active")}
-              className={`px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm font-semibold transition ${activeTab === "active" ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-            >
-              Active ({activeClients.length})
-            </button>
+            {["all", "active"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-semibold transition capitalize ${
+                  activeTab === tab
+                    ? "bg-emerald-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {tab === "all"
+                  ? `All (${filteredClients.length})`
+                  : `Active (${activeClients.length})`}
+              </button>
+            ))}
           </div>
 
-          {/* ── TABLE (desktop) / CARDS (mobile) ── */}
+          {/* ── TABLE / CARDS ── */}
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-            {/* Desktop table header — hidden on mobile */}
+            {/* Desktop column headers */}
             <div className="hidden lg:grid lg:grid-cols-9 px-5 py-3.5 text-xs font-bold text-gray-600 uppercase tracking-wider border-b border-gray-200 bg-gray-100">
-              <p>Client</p>
-              <p>Email</p>
-              <p>Phone</p>
-              <p>Type</p>
-              <p>Status</p>
-              <p>Duration</p>
-              <p>Amount</p>
-              <p>Timer</p>
-              <p>Actions</p>
+              {[
+                "Client",
+                "Email",
+                "Phone",
+                "Type",
+                "Status",
+                "Duration",
+                "Amount",
+                "Timer",
+                "Actions",
+              ].map((h) => (
+                <p key={h}>{h}</p>
+              ))}
             </div>
 
             {displayClients.length === 0 ? (
-              <div className="text-center py-14 text-gray-400">
+              <div className="text-center py-14 text-gray-400 px-4">
                 <svg
                   className="w-10 h-10 mx-auto mb-3 text-gray-200"
                   fill="none"
@@ -515,57 +578,172 @@ export default function Dashboard() {
                 </p>
               </div>
             ) : (
-              <div>
-                {displayClients
-                  .filter((c) => c.name?.trim())
-                  .map((c) => (
-                    <div key={`${c._id}-${c.timerId || "x"}`}>
-                      {/* ── DESKTOP ROW ── */}
-                      <div className="hidden lg:grid lg:grid-cols-9 gap-2 px-5 py-4 border-t border-gray-100 items-center hover:bg-gray-50/70 transition-colors">
-                        <p className="font-bold text-gray-900 text-sm truncate">
-                          {c.name}
-                        </p>
-                        <p className="text-sm text-gray-700 truncate font-medium">
-                          {c.email || "-"}
-                        </p>
-                        <p className="text-sm text-gray-700 font-medium">
-                          {c.phone || "-"}
-                        </p>
-                        <p>
-                          <span className="capitalize bg-gray-200 text-gray-800 px-2 py-0.5 rounded-md text-xs font-bold">
-                            {c.pricing?.type || "-"}
+              displayClients
+                .filter((c) => c.name?.trim())
+                .map((c) => (
+                  <div key={`${c._id}-${c.timerId || "x"}`}>
+                    {/* ── DESKTOP ROW ── */}
+                    <div className="hidden lg:grid lg:grid-cols-9 gap-2 px-5 py-4 border-t border-gray-100 items-center hover:bg-gray-50/70 transition-colors">
+                      <p className="font-bold text-gray-900 text-sm truncate">
+                        {c.name}
+                      </p>
+                      <p className="text-sm text-gray-700 truncate font-medium">
+                        {c.email || "-"}
+                      </p>
+                      <p className="text-sm text-gray-700 font-medium">
+                        {c.phone || "-"}
+                      </p>
+                      <p>
+                        <span className="capitalize bg-gray-200 text-gray-800 px-2 py-0.5 rounded-md text-xs font-bold">
+                          {c.pricing?.type || "-"}
+                        </span>
+                      </p>
+                      <p>
+                        {c.isRunning ? (
+                          <span className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Running
                           </span>
-                        </p>
-                        <p>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-gray-500 text-xs font-semibold">
+                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                            Stopped
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-gray-800 font-semibold">
+                        {c.duration ? formatTime(c.duration) : "-"}
+                      </p>
+                      <p className="text-sm font-bold text-emerald-700 font-mono">
+                        {c.amount ? `₹${c.amount}` : "-"}
+                      </p>
+                      <div>
+                        <button
+                          onClick={() =>
+                            c.isRunning ? handleStop(c) : handleStart(c)
+                          }
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
+                            c.isRunning
+                              ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                              : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                          }`}
+                        >
+                          {c.isRunning ? "Stop" : "Start"}
+                        </button>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEdit(c)}
+                          className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-gray-600"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() =>
+                            setDeleteModal({ open: true, client: c })
+                          }
+                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 transition text-red-500"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* ── MOBILE / TABLET CARD ── */}
+                    <div className="lg:hidden border-t border-gray-100 px-4 py-4 hover:bg-gray-50/50 transition-colors">
+                      {/* Row 1: name + status badge */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 text-sm truncate">
+                            {c.name}
+                          </p>
+                          <p className="text-xs text-gray-400 truncate">
+                            {c.email}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                          <span className="capitalize bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md text-xs font-bold">
+                            {c.pricing?.type}
+                          </span>
                           {c.isRunning ? (
-                            <span className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold">
+                            <span className="flex items-center gap-1 text-emerald-700 text-xs font-bold">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                               Running
                             </span>
                           ) : (
-                            <span className="flex items-center gap-1.5 text-gray-500 text-xs font-semibold">
-                              <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                            <span className="flex items-center gap-1 text-gray-400 text-xs">
+                              <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
                               Stopped
                             </span>
                           )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: phone (if present) */}
+                      {c.phone && (
+                        <p className="text-xs text-gray-400 mb-2 font-medium">
+                          {c.phone}
                         </p>
-                        <p className="text-sm text-gray-800 font-semibold">
-                          {c.duration ? formatTime(c.duration) : "-"}
-                        </p>
-                        <p className="text-sm font-bold text-emerald-700 font-mono">
-                          {c.amount ? `₹${c.amount}` : "-"}
-                        </p>
-                        <div>
+                      )}
+
+                      {/* Row 3: stats + actions */}
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <div className="flex gap-4">
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+                              Duration
+                            </p>
+                            <p className="text-sm font-semibold text-gray-800">
+                              {c.duration ? formatTime(c.duration) : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide">
+                              Amount
+                            </p>
+                            <p className="text-sm font-bold text-emerald-700 font-mono">
+                              {c.amount ? `₹${c.amount}` : "—"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
                           <button
                             onClick={() =>
                               c.isRunning ? handleStop(c) : handleStart(c)
                             }
-                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${c.isRunning ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100" : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                              c.isRunning
+                                ? "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                            }`}
                           >
                             {c.isRunning ? "Stop" : "Start"}
                           </button>
-                        </div>
-                        <div className="flex gap-2">
                           <button
                             onClick={() => openEdit(c)}
                             className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-gray-600"
@@ -606,108 +784,9 @@ export default function Dashboard() {
                           </button>
                         </div>
                       </div>
-
-                      {/* ── MOBILE CARD ── */}
-                      <div className="lg:hidden border-t border-gray-100 px-4 py-4 hover:bg-gray-50/50 transition-colors">
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="min-w-0">
-                            <p className="font-bold text-gray-900 text-sm truncate">
-                              {c.name}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {c.email}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="capitalize bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md text-xs font-bold">
-                              {c.pricing?.type}
-                            </span>
-                            {c.isRunning ? (
-                              <span className="flex items-center gap-1 text-emerald-700 text-xs font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                Running
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-gray-400 text-xs">
-                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300" />
-                                Stopped
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex gap-4">
-                            <div>
-                              <p className="text-xs text-gray-400 font-medium">
-                                Duration
-                              </p>
-                              <p className="text-sm font-semibold text-gray-800">
-                                {c.duration ? formatTime(c.duration) : "—"}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-400 font-medium">
-                                Amount
-                              </p>
-                              <p className="text-sm font-bold text-emerald-700 font-mono">
-                                {c.amount ? `₹${c.amount}` : "—"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() =>
-                                c.isRunning ? handleStop(c) : handleStart(c)
-                              }
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${c.isRunning ? "bg-red-50 text-red-600 border border-red-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"}`}
-                            >
-                              {c.isRunning ? "Stop" : "Start"}
-                            </button>
-                            <button
-                              onClick={() => openEdit(c)}
-                              className="p-1.5 rounded-lg bg-gray-100 text-gray-600"
-                            >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={() =>
-                                setDeleteModal({ open: true, client: c })
-                              }
-                              className="p-1.5 rounded-lg bg-red-50 text-red-500"
-                            >
-                              <svg
-                                className="w-3.5 h-3.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                  ))}
-              </div>
+                  </div>
+                ))
             )}
           </div>
 
@@ -717,193 +796,28 @@ export default function Dashboard() {
             </p>
           )}
         </div>
+      </div>
 
-        {/* ── ADD / EDIT MODAL ── */}
-        {showForm && (
+      {/* ── ADD / EDIT MODAL ── */}
+      {showForm && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center backdrop-blur-sm z-50 p-0 sm:p-4"
+          onClick={closeForm}
+        >
           <div
-            className="fixed inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm z-50 p-4"
-            onClick={closeForm}
+            className="bg-white w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl shadow-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-[#1a4a3a] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-white">
-                  {editingId ? "Edit Client" : "Add New Client"}
-                </h2>
-                <button
-                  onClick={closeForm}
-                  className="text-white/60 hover:text-white transition"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Client Info
-                  </p>
-                  <div className="space-y-3">
-                    <div>
-                      <input
-                        name="name"
-                        placeholder="Full name"
-                        value={form.name}
-                        onChange={handleChange}
-                        className={inputCls("name")}
-                      />
-                      {errors.name && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.name}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <input
-                        name="email"
-                        placeholder="Email address"
-                        value={form.email}
-                        onChange={handleChange}
-                        disabled={!!editingId}
-                        className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition ${editingId ? "opacity-50 cursor-not-allowed bg-gray-100 border-gray-200" : errors.email ? "border-red-400 bg-red-50" : "border-gray-200 bg-gray-50 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"}`}
-                      />
-                      {errors.email && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.email}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <input
-                        name="phone"
-                        placeholder="Phone number"
-                        value={form.phone}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            phone: e.target.value
-                              .replace(/\D/g, "")
-                              .slice(0, 10),
-                          })
-                        }
-                        className={inputCls("phone")}
-                      />
-                      {errors.phone && (
-                        <p className="text-red-500 text-xs mt-1">
-                          {errors.phone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                    Pricing
-                  </p>
-                  <div className="space-y-3">
-                    <select
-                      name="type"
-                      value={form.type}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition"
-                    >
-                      <option value="hourly">Hourly</option>
-                      <option value="fixed">Fixed</option>
-                      <option value="perunit">Per Unit</option>
-                      <option value="manual">Manual</option>
-                    </select>
-                    {form.type === "hourly" && (
-                      <div>
-                        <input
-                          name="ratePerHour"
-                          placeholder="Rate per hour (₹)"
-                          type="number"
-                          min="0"
-                          value={form.ratePerHour}
-                          onChange={handleChange}
-                          className={inputCls("pricing.ratePerHour")}
-                        />
-                        {errors["pricing.ratePerHour"] && (
-                          <p className="text-red-500 text-xs mt-1">
-                            {errors["pricing.ratePerHour"]}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {form.type === "fixed" && (
-                      <div>
-                        <input
-                          name="fixedAmount"
-                          placeholder="Fixed amount (₹)"
-                          type="number"
-                          min="0"
-                          value={form.fixedAmount}
-                          onChange={handleChange}
-                          className={inputCls("pricing.fixedAmount")}
-                        />
-                        {errors["pricing.fixedAmount"] && (
-                          <p className="text-red-500 text-xs mt-1">
-                            {errors["pricing.fixedAmount"]}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {form.type === "perunit" && (
-                      <div>
-                        <input
-                          name="pricePerUnit"
-                          placeholder="Price per unit (₹)"
-                          type="number"
-                          min="0"
-                          value={form.pricePerUnit}
-                          onChange={handleChange}
-                          className={inputCls("pricing.pricePerUnit")}
-                        />
-                        {errors["pricing.pricePerUnit"] && (
-                          <p className="text-red-500 text-xs mt-1">
-                            {errors["pricing.pricePerUnit"]}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {form.type === "manual" && (
-                      <p className="text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
-                        Amount will be entered manually at stop.
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={addClient}
-                  className="w-full py-2.5 bg-[#1a4a3a] hover:bg-[#163d30] text-white rounded-xl font-semibold text-sm transition-all shadow-md"
-                >
-                  {editingId ? "Update Client" : "Save Client"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── DELETE MODAL ── */}
-        {deleteModal.open && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mb-4">
+            <div className="bg-[#1a4a3a] px-5 py-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-white">
+                {editingId ? "Edit Client" : "Add New Client"}
+              </h2>
+              <button
+                onClick={closeForm}
+                className="text-white/60 hover:text-white transition"
+              >
                 <svg
-                  className="w-5 h-5 text-red-500"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -912,60 +826,225 @@ export default function Dashboard() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
+              </button>
+            </div>
+            <div className="p-5 space-y-5 max-h-[80vh] overflow-y-auto">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  Client Info
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <input
+                      name="name"
+                      placeholder="Full name"
+                      value={form.name}
+                      onChange={handleChange}
+                      className={inputCls("name")}
+                    />
+                    {errors.name && (
+                      <p className="text-red-500 text-xs mt-1">{errors.name}</p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      name="email"
+                      placeholder="Email address"
+                      value={form.email}
+                      onChange={handleChange}
+                      disabled={!!editingId}
+                      className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition ${
+                        editingId
+                          ? "opacity-50 cursor-not-allowed bg-gray-100 border-gray-200"
+                          : errors.email
+                            ? "border-red-400 bg-red-50"
+                            : "border-gray-200 bg-gray-50 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                      }`}
+                    />
+                    {errors.email && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      name="phone"
+                      placeholder="Phone number"
+                      value={form.phone}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        })
+                      }
+                      className={inputCls("phone")}
+                    />
+                    {errors.phone && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">
-                Delete Client
-              </h2>
-              <p className="text-sm text-gray-600 mb-5">
-                Delete{" "}
-                <span className="font-semibold text-gray-900">
-                  {deleteModal.client?.name}
-                </span>
-                ? This cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setDeleteModal({ open: false, client: null })}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDelete(deleteModal.client)}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition shadow-sm"
-                >
-                  Delete
-                </button>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                  Pricing
+                </p>
+                <div className="space-y-3">
+                  <select
+                    name="type"
+                    value={form.type}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-100 transition"
+                  >
+                    <option value="hourly">Hourly</option>
+                    <option value="fixed">Fixed</option>
+                    <option value="perunit">Per Unit</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                  {form.type === "hourly" && (
+                    <div>
+                      <input
+                        name="ratePerHour"
+                        placeholder="Rate per hour (₹)"
+                        type="number"
+                        min="0"
+                        value={form.ratePerHour}
+                        onChange={handleChange}
+                        className={inputCls("pricing.ratePerHour")}
+                      />
+                      {errors["pricing.ratePerHour"] && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors["pricing.ratePerHour"]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {form.type === "fixed" && (
+                    <div>
+                      <input
+                        name="fixedAmount"
+                        placeholder="Fixed amount (₹)"
+                        type="number"
+                        min="0"
+                        value={form.fixedAmount}
+                        onChange={handleChange}
+                        className={inputCls("pricing.fixedAmount")}
+                      />
+                      {errors["pricing.fixedAmount"] && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors["pricing.fixedAmount"]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {form.type === "perunit" && (
+                    <div>
+                      <input
+                        name="pricePerUnit"
+                        placeholder="Price per unit (₹)"
+                        type="number"
+                        min="0"
+                        value={form.pricePerUnit}
+                        onChange={handleChange}
+                        className={inputCls("pricing.pricePerUnit")}
+                      />
+                      {errors["pricing.pricePerUnit"] && (
+                        <p className="text-red-500 text-xs mt-1">
+                          {errors["pricing.pricePerUnit"]}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {form.type === "manual" && (
+                    <p className="text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
+                      Amount will be entered manually at stop.
+                    </p>
+                  )}
+                </div>
               </div>
+              <button
+                onClick={addClient}
+                className="w-full py-2.5 bg-[#1a4a3a] hover:bg-[#163d30] text-white rounded-xl font-semibold text-sm transition-all shadow-md"
+              >
+                {editingId ? "Update Client" : "Save Client"}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <InputModal
-          open={inputModal.open}
-          title={
+      {/* ── DELETE MODAL ── */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-xl">
+            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <svg
+                className="w-5 h-5 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">
+              Delete Client
+            </h2>
+            <p className="text-sm text-gray-600 mb-5">
+              Delete{" "}
+              <span className="font-semibold text-gray-900">
+                {deleteModal.client?.name}
+              </span>
+              ? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal({ open: false, client: null })}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(deleteModal.client)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition shadow-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <InputModal
+        open={inputModal.open}
+        title={
+          inputModal.type === "manual"
+            ? `Enter amount for ${inputModal.client?.name}`
+            : `Enter units for ${inputModal.client?.name}`
+        }
+        label={inputModal.type === "manual" ? "Amount ₹" : "Units"}
+        onClose={() => setInputModal({ open: false, type: null, client: null })}
+        onSubmit={async (value) => {
+          const c = inputModal.client;
+          const payload =
             inputModal.type === "manual"
-              ? `Enter amount for ${inputModal.client?.name}`
-              : `Enter units for ${inputModal.client?.name}`
-          }
-          label={inputModal.type === "manual" ? "Amount ₹" : "Units"}
-          onClose={() =>
-            setInputModal({ open: false, type: null, client: null })
-          }
-          onSubmit={async (value) => {
-            const c = inputModal.client;
-            const payload =
-              inputModal.type === "manual"
-                ? { manualAmount: value }
-                : { units: value };
-            await stopTimerDirect(c, payload);
-            setInputModal({ open: false, type: null, client: null });
-          }}
-        />
-      </div>
+              ? { manualAmount: value }
+              : { units: value };
+          await stopTimerDirect(c, payload);
+          setInputModal({ open: false, type: null, client: null });
+        }}
+      />
     </div>
   );
 }
@@ -978,17 +1057,17 @@ function StatCard({
   accent = false,
 }) {
   return (
-    <div className="bg-white rounded-xl md:rounded-2xl border border-gray-200 p-4 md:p-5 shadow-sm hover:shadow-md transition-shadow">
-      <p className="text-[10px] md:text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 md:mb-3">
+    <div className="bg-white rounded-xl lg:rounded-2xl border border-gray-200 p-3.5 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+      <p className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 sm:mb-3">
         {title}
       </p>
       <h2
-        className={`font-bold tracking-tight text-2xl md:text-3xl ${accent ? "text-emerald-700 font-mono" : "text-gray-950"}`}
+        className={`font-bold tracking-tight text-xl sm:text-3xl ${accent ? "text-emerald-700 font-mono" : "text-gray-950"}`}
       >
         {value}
       </h2>
       {sub && (
-        <p className={`text-xs mt-1 md:mt-1.5 font-medium ${subColor}`}>
+        <p className={`text-xs mt-1 sm:mt-1.5 font-medium ${subColor}`}>
           {sub}
         </p>
       )}
