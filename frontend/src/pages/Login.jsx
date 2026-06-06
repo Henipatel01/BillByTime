@@ -2,7 +2,7 @@ import { useState } from "react";
 import { loginUser } from "../services/authService";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
-import { LoginSuccessPopup } from "../component/SuccessPopup";
+import { LoginSuccessPopup } from "../component/successpopup";
 
 export default function Login() {
   const navigate = useNavigate();
