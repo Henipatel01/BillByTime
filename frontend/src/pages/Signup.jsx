@@ -50,6 +50,11 @@ export default function Signup() {
 
       setUser({ name: "", email: "", password: "" });
     } catch (err) {
+
+    console.log("FULL ERROR:", err);
+  console.log("RESPONSE:", err.response);
+  console.log("DATA:", err.response?.data);
+
       const fieldErrors = err.response?.data?.errors;
       const message =
         err.response?.data?.message ||

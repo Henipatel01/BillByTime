@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -23,7 +23,6 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error("API ERROR:", error.response?.data || error.message);
     return Promise.reject(error);
   },
 );
@@ -42,24 +41,15 @@ export const getCustomers = async () => {
 
 // ─── Timers ────────────────────────────────────────
 export const startTimerAPI = async (data) => {
-  console.log("START TIMER PAYLOAD:", data);
-
   const res = await api.post("/time/start", data);
-
-  console.log("START TIMER RESPONSE:", res.data);
-
   return res.data.data;
 };
 
 export const stopTimerAPI = async (timerId, extra = {}) => {
-  console.log("STOP TIMER:", { timerId, extra });
-
   const res = await api.post("/time/stop", {
     id: timerId,
     ...extra,
   });
-
-  console.log("STOP TIMER RESPONSE:", res.data);
   return res.data.data;
 };
 
