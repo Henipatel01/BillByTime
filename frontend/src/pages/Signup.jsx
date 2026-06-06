@@ -2,7 +2,7 @@ import { useState } from "react";
 import { signupUser } from "../services/authService";
 import { NavLink } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import { SignupSuccessPopup } from "../component/Successpopup";
+import { SignupSuccessPopup } from "../component/successpopup";
 
 export default function Signup() {
   const [user, setUser] = useState({
