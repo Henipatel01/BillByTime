@@ -36,7 +36,7 @@ app.use("/api/report", reportRoutes);
 app.use("/api/history", historyRoutes);
 
 app.use(errorMiddleware);
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 connectDb().then(() => {
   app.listen(PORT, () => {
     console.log(`server is running at port: ${PORT}`);
